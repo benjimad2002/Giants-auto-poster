@@ -1,0 +1,47 @@
+# Import necessary libraries
+from keras.preprocessing.text import Tokenizer
+from keras.preprocessing.sequence import pad_sequences
+from keras.models import Sequential
+from keras.layers import Embedding, LSTM, Dense
+
+# Load data
+train_data = pd.read_csv('giants_tweets.csv')
+
+# Preprocess data
+tokenizer = Tokenizer(num_words=5000)
+tokenizer.fit_on_texts(train_data['text'])
+
+sequences = tokenizer.texts_to_sequences(train_data['text'])
+padded_sequences = pad_sequences(sequences, maxlen=100)
+
+# Split data into training and validation sets
+train_sequences, val_sequences = train_test_split(padded_sequences, test_size=0.2, random_state=42)
+
+# Define model
+model = Sequential()
+model.add(Embedding(input_dim=5000, output_dim=128, input_length=100))
+model.add(LSTM(128, dropout=0.2))
+model.add(Dense(1, activation='sigmoid'))
+
+# Compile model
+model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+
+# Train model
+model.fit(train_sequences, epochs=50, batch_size=32, validation_data=val_sequences)
+
+# Generate new tweets
+def generate_tweet(seed):
+    # Tokenize seed
+    tokenized_seed = tokenizer.texts_to_sequences([seed])
+    padded_seed = pad_sequences(tokenized_seed, maxlen=100)
+
+    # Generate new tweet
+    new_tweet = model.predict(padded_seed)
+
+    # Decode new tweet
+    decoded_tweet = tokenizer.sequences_to_texts(new_tweet)
+
+    return decoded_tweet
+
+# Example usage
+print(generate_tweet("Giants win again!"))
